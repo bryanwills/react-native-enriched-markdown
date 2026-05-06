@@ -31,6 +31,14 @@ function UnderlineRenderer({ node, styles, renderChildren }: RendererProps) {
   return <u style={styles.underline}>{renderChildren(node)}</u>;
 }
 
+function SuperscriptRenderer({ node, styles, renderChildren }: RendererProps) {
+  return <sup style={styles.superscript}>{renderChildren(node)}</sup>;
+}
+
+function SubscriptRenderer({ node, styles, renderChildren }: RendererProps) {
+  return <sub style={styles.subscript}>{renderChildren(node)}</sub>;
+}
+
 function CodeRenderer({ node, styles, renderChildren }: RendererProps) {
   return (
     <code style={styles.code}>{node.content ?? renderChildren(node)}</code>
@@ -99,6 +107,8 @@ export const inlineRenderers: RendererMap = {
   Emphasis: EmphasisRenderer,
   Strikethrough: StrikethroughRenderer,
   Underline: UnderlineRenderer,
+  Superscript: SuperscriptRenderer,
+  Subscript: SubscriptRenderer,
   Code: CodeRenderer,
   Link: LinkRenderer,
   LatexMathInline: LatexMathInlineRenderer,

@@ -185,6 +185,34 @@ interface SpoilerStyle {
   solid?: SpoilerSolidStyle;
 }
 
+interface SuperscriptStyle {
+  /**
+   * Font size as a fraction of the surrounding text size.
+   * @default 0.75
+   */
+  fontScale?: number;
+  /**
+   * Vertical shift as a fraction of the surrounding text size.
+   * Positive values shift the text upward.
+   * @default 0.35
+   */
+  baselineOffsetScale?: number;
+}
+
+interface SubscriptStyle {
+  /**
+   * Font size as a fraction of the surrounding text size.
+   * @default 0.75
+   */
+  fontScale?: number;
+  /**
+   * Vertical shift as a fraction of the surrounding text size.
+   * Positive values shift the text downward.
+   * @default 0.20
+   */
+  baselineOffsetScale?: number;
+}
+
 export interface MarkdownStyle {
   paragraph?: ParagraphStyle;
   h1?: HeadingStyle;
@@ -210,6 +238,8 @@ export interface MarkdownStyle {
   math?: MathStyle;
   inlineMath?: InlineMathStyle;
   spoiler?: SpoilerStyle;
+  superscript?: SuperscriptStyle;
+  subscript?: SubscriptStyle;
 }
 
 /**
@@ -224,6 +254,20 @@ export interface Md4cFlags {
    * @default false
    */
   underline?: boolean;
+  /**
+   * Enable superscript span parsing (^text^).
+   * When enabled, the parser recognizes caret superscript delimiters.
+   * When disabled, carets are treated as plain text.
+   * @default false
+   */
+  superscript?: boolean;
+  /**
+   * Enable subscript span parsing (~text~).
+   * When enabled, single tildes are treated as subscript markers.
+   * When disabled, single and double tildes are treated as strikethrough markers.
+   * @default false
+   */
+  subscript?: boolean;
   /**
    * Enable LaTeX math span parsing ($..$ and $$..$$).
    * When enabled, the parser recognizes LaTeX math delimiters.

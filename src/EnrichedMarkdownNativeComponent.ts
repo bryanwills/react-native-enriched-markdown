@@ -153,6 +153,16 @@ interface SpoilerStyleInternal {
   solid: SpoilerSolidStyleInternal;
 }
 
+interface SuperscriptStyleInternal {
+  fontScale: CodegenTypes.Float;
+  baselineOffsetScale: CodegenTypes.Float;
+}
+
+interface SubscriptStyleInternal {
+  fontScale: CodegenTypes.Float;
+  baselineOffsetScale: CodegenTypes.Float;
+}
+
 export interface MarkdownStyleInternal {
   paragraph: ParagraphStyleInternal;
   h1: HeadingStyleInternal;
@@ -178,6 +188,8 @@ export interface MarkdownStyleInternal {
   math: MathStyleInternal;
   inlineMath: InlineMathStyleInternal;
   spoiler: SpoilerStyleInternal;
+  superscript: SuperscriptStyleInternal;
+  subscript: SubscriptStyleInternal;
 }
 
 export interface LinkPressEvent {
@@ -223,6 +235,16 @@ export interface Md4cFlagsInternal {
    * @default false
    */
   underline: boolean;
+  /**
+   * Enable superscript span parsing (^text^).
+   * @default false
+   */
+  superscript: boolean;
+  /**
+   * Enable subscript span parsing (~text~).
+   * @default false
+   */
+  subscript: boolean;
   /**
    * Enable LaTeX math span parsing ($..$ and $$..$$).
    * When disabled, dollar signs are treated as plain text.
