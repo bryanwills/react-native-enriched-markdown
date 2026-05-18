@@ -38,7 +38,14 @@ class TailFadeInAnimator(
 
         addUpdateListener { anim ->
           fadeSpan.alpha = anim.animatedValue as Float
-          viewRef.get()?.invalidate()
+          val tv = viewRef.get() ?: return@addUpdateListener
+          val currentSpannable = tv.text as? Spannable ?: return@addUpdateListener
+
+          val end = minOf(tailEnd, currentSpannable.length)
+          if (end > tailStart) {
+            currentSpannable.setSpan(fadeSpan, tailStart, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+          }
+          tv.invalidate()
         }
 
         addListener(
