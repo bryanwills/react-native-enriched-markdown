@@ -14,7 +14,6 @@ import {
   EnrichedMarkdownTextInput,
   type EnrichedMarkdownTextInputInstance,
   type StyleState,
-  type LinkPressEvent,
 } from 'react-native-enriched-markdown';
 import { FormattingToolbar } from '../../components/FormattingToolbar';
 import { MessageBubble, type BubbleContextMenuItem } from './MessageBubble';
@@ -43,26 +42,14 @@ const MY_NICK = 'me';
 
 const CHANNEL_DATA: Record<string, ChannelData> = {
   'random': {
-    newFromIndex: 13,
+    newFromIndex: 6,
     messages: [
-      { nick: 'alice', time: '12:05', message: 'morning everyone!' },
-      { nick: 'dave', time: '12:06', message: 'morning ☀️' },
-      {
-        nick: 'carol',
-        time: '12:07',
-        message: 'hey! running a bit late today',
-      },
       {
         nick: 'bob',
         time: '12:10',
         message: '## Heads up\n\ndeployment scheduled for 3pm today',
       },
       { nick: 'alice', time: '12:11', message: "@bob noted, we'll be ready" },
-      {
-        nick: 'dave',
-        time: '12:15',
-        message: 'run `git pull origin main` before starting',
-      },
       {
         nick: 'carol',
         time: '12:16',
@@ -76,9 +63,6 @@ const CHANNEL_DATA: Record<string, ChannelData> = {
         message: '||the prod deploy passphrase is hunter2||',
       },
       { nick: 'dave', time: '12:46', message: '@alice 😂 please no' },
-      { nick: 'carol', time: '13:02', message: 'anyone up for a quick sync?' },
-      { nick: 'bob', time: '13:05', message: 'sure, 10 mins?' },
-      { nick: 'alice', time: '13:06', message: 'works for me 👍' },
       // ── new messages below ──
       { nick: 'alice', time: '14:15', message: 'anything new today?' },
       { nick: 'dave', time: '14:16', message: 'not really, pretty quiet' },
@@ -97,8 +81,7 @@ const CHANNEL_DATA: Record<string, ChannelData> = {
       {
         nick: 'carol',
         time: '14:24',
-        message:
-          'someone post this in [#team-lunch](channel://team-lunch) lmao',
+        message: 'someone post this in #general lmao',
       },
     ],
   },
@@ -248,16 +231,6 @@ export default function InputScreen({ navigation, route }: Props) {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
   }, []);
 
-  const handleLinkPress = useCallback(
-    (event: LinkPressEvent) => {
-      const { url } = event;
-      if (url.startsWith('channel://')) {
-        navigation.push('Input', { channel: url.slice('channel://'.length) });
-      }
-    },
-    [navigation]
-  );
-
   const bubbleContextMenuItems = useMemo<BubbleContextMenuItem[]>(
     () => [
       {
@@ -359,7 +332,6 @@ export default function InputScreen({ navigation, route }: Props) {
                 message={item.message}
                 isMe={item.nick === MY_NICK}
                 contextMenuItems={bubbleContextMenuItems}
-                onLinkPress={handleLinkPress}
               />
             )
           )}
@@ -393,7 +365,8 @@ export default function InputScreen({ navigation, route }: Props) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const TEAL = '#4A9EBF';
+const MAIN_COLOR = '#E2F8EB';
+const MAIN_TEXT = '#001A72';
 
 const styles = StyleSheet.create({
   container: {
@@ -409,7 +382,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingBottom: 10,
-    backgroundColor: TEAL,
+    backgroundColor: MAIN_COLOR,
   },
   backButton: {
     width: 32,
@@ -418,7 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backIcon: {
-    color: '#fff',
+    color: MAIN_TEXT,
     fontSize: 32,
     lineHeight: 36,
     fontWeight: '300',
@@ -432,7 +405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerAvatarText: {
-    color: '#fff',
+    color: MAIN_TEXT,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -440,12 +413,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerName: {
-    color: '#fff',
+    color: MAIN_COLOR,
     fontWeight: '700',
     fontSize: 16,
   },
   headerStatus: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(226,248,235,0.8)',
     fontSize: 12,
   },
   messageList: {
@@ -482,12 +455,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: TEAL,
+    backgroundColor: MAIN_COLOR,
+
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendIcon: {
-    color: '#fff',
+    color: MAIN_TEXT,
     fontSize: 14,
     marginLeft: 2,
   },
