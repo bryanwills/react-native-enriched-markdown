@@ -413,12 +413,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerName: {
-    color: MAIN_COLOR,
+    color: MAIN_TEXT,
     fontWeight: '700',
     fontSize: 16,
   },
   headerStatus: {
-    color: 'rgba(226,248,235,0.8)',
+    color: 'rgba(0, 26, 114, 0.7)',
     fontSize: 12,
   },
   messageList: {
