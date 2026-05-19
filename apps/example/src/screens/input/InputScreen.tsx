@@ -2,18 +2,22 @@ import { useRef, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
+  FlatList,
   ScrollView,
+  Pressable,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  type ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   EnrichedMarkdownTextInput,
   type EnrichedMarkdownTextInputInstance,
   type StyleState,
+  type CaretRect,
 } from 'react-native-enriched-markdown';
 import { FormattingToolbar } from '../../components/FormattingToolbar';
 import { MessageBubble, type BubbleContextMenuItem } from './MessageBubble';
@@ -36,9 +40,26 @@ type MessageItem =
   | { id: number; kind: 'message'; nick: string; time: string; message: string }
   | { id: number; kind: 'divider'; count: number };
 
+type MentionItem = {
+  name: string;
+  url: string;
+};
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const MY_NICK = 'me';
+
+const USER_MENTIONS: MentionItem[] = [
+  { name: 'John Doe', url: 'user://u_1' },
+  { name: 'Jane Smith', url: 'user://u_2' },
+  { name: 'Alice Johnson', url: 'user://u_3' },
+  { name: 'Bob Brown', url: 'user://u_4' },
+];
+
+const CHANNEL_MENTIONS: MentionItem[] = [
+  { name: 'random', url: 'channel://random' },
+  { name: 'lunch-talks', url: 'channel://lunch-talks' },
+];
 
 const CHANNEL_DATA: Record<string, ChannelData> = {
   'random': {
@@ -85,7 +106,7 @@ const CHANNEL_DATA: Record<string, ChannelData> = {
       },
     ],
   },
-  'team-lunch': {
+  'lunch-talks': {
     newFromIndex: 9,
     messages: [
       {
@@ -137,6 +158,18 @@ const CHANNEL_DATA: Record<string, ChannelData> = {
 
 const MARKDOWN_STYLE = {
   link: { color: '#2563EB', underline: true },
+  linkVariants: {
+    '^user:': {
+      color: '#1264A3',
+      backgroundColor: '#E8F5FB',
+      underline: false,
+    },
+    '^channel:': {
+      color: '#065F46',
+      backgroundColor: '#D1FAE5',
+      underline: false,
+    },
+  },
 };
 
 function buildMessages(channel: string): MessageItem[] {
@@ -191,6 +224,53 @@ const dividerStyles = StyleSheet.create({
   },
 });
 
+// ─── MentionSuggestionPopup ───────────────────────────────────────────────────
+
+function MentionSuggestionPopup({
+  indicator,
+  data,
+  top,
+  onItemPress,
+}: {
+  indicator: string | null;
+  data: MentionItem[];
+  top: number;
+  onItemPress: (item: MentionItem) => void;
+}) {
+  if (indicator == null || data.length === 0) return null;
+
+  const isUserMention = indicator === '@';
+  const renderItem = ({ item }: ListRenderItemInfo<MentionItem>) => (
+    <Pressable
+      style={({ pressed }) => [
+        styles.mentionItem,
+        pressed && styles.mentionItemPressed,
+      ]}
+      onPress={() => onItemPress(item)}
+    >
+      <View style={styles.mentionAvatar}>
+        <Text style={styles.mentionAvatarText}>
+          {isUserMention ? '@' : '#'}
+        </Text>
+      </View>
+      <Text style={styles.mentionName}>{item.name}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={[styles.mentionPopup, { top }]}>
+      <FlatList
+        keyboardShouldPersistTaps="handled"
+        overScrollMode="never"
+        data={data}
+        keyExtractor={(item) => item.url}
+        renderItem={renderItem}
+        style={styles.mentionList}
+      />
+    </View>
+  );
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 type Props = RootStackScreenProps<'Input'>;
@@ -207,7 +287,23 @@ export default function InputScreen({ navigation, route }: Props) {
   );
   const [hasSelection, setHasSelection] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [activeMention, setActiveMention] = useState<{
+    indicator: string;
+    text: string;
+  } | null>(null);
+  const [caretRect, setCaretRect] = useState<CaretRect | null>(null);
+  const [inputRowY, setInputRowY] = useState(0);
   const { top: topInset, bottom: bottomInset } = useSafeAreaInsets();
+
+  const mentionSuggestions = useMemo(() => {
+    if (activeMention == null) return [];
+
+    const source =
+      activeMention.indicator === '@' ? USER_MENTIONS : CHANNEL_MENTIONS;
+    const query = activeMention.text.toLowerCase();
+
+    return source.filter((item) => item.name.toLowerCase().startsWith(query));
+  }, [activeMention]);
 
   const sendMessage = useCallback(async () => {
     const md = await inputRef.current?.getMarkdown();
@@ -228,8 +324,25 @@ export default function InputScreen({ navigation, route }: Props) {
     ]);
 
     inputRef.current?.setValue('');
+    setActiveMention(null);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
   }, []);
+
+  const handleMentionSelected = useCallback((item: MentionItem) => {
+    const indicator = item.url.startsWith('user://') ? '@' : '#';
+    inputRef.current?.insertMention(`${indicator}${item.name}`, item.url);
+    setActiveMention(null);
+  }, []);
+
+  const handleBubbleLinkPress = useCallback(
+    ({ url }: { url: string }) => {
+      if (url.startsWith('channel://')) {
+        const target = url.slice('channel://'.length);
+        navigation.push('Input', { channel: target });
+      }
+    },
+    [navigation]
+  );
 
   const bubbleContextMenuItems = useMemo<BubbleContextMenuItem[]>(
     () => [
@@ -332,6 +445,7 @@ export default function InputScreen({ navigation, route }: Props) {
                 message={item.message}
                 isMe={item.nick === MY_NICK}
                 contextMenuItems={bubbleContextMenuItems}
+                onLinkPress={handleBubbleLinkPress}
               />
             )
           )}
@@ -341,23 +455,44 @@ export default function InputScreen({ navigation, route }: Props) {
           state={state}
           inputRef={inputRef}
           hasSelection={hasSelection}
+          mentionIndicators={['@', '#']}
         />
 
-        <View style={[styles.inputRow, { paddingBottom: 12 + bottomInset }]}>
+        <View
+          style={[styles.inputRow, { paddingBottom: 12 + bottomInset }]}
+          onLayout={(e) => setInputRowY(e.nativeEvent.layout.y)}
+        >
           <EnrichedMarkdownTextInput
             ref={inputRef}
             placeholder={`Message #${channel}...`}
             placeholderTextColor="#9CA3AF"
             style={styles.input}
             markdownStyle={MARKDOWN_STYLE}
+            mentionIndicators={['@', '#']}
             onChangeState={setState}
+            onCaretRectChange={setCaretRect}
             onChangeSelection={(sel) => setHasSelection(sel.start !== sel.end)}
+            onStartMention={({ indicator }) => {
+              setActiveMention({ indicator, text: '' });
+            }}
+            onChangeMention={({ indicator, text }) => {
+              setActiveMention({ indicator, text });
+            }}
+            onEndMention={() => {
+              setActiveMention(null);
+            }}
             contextMenuItems={inputContextMenuItems}
           />
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
             <Text style={styles.sendIcon}>▶</Text>
           </TouchableOpacity>
         </View>
+        <MentionSuggestionPopup
+          indicator={activeMention?.indicator ?? null}
+          data={mentionSuggestions}
+          top={Math.max(0, inputRowY + (caretRect?.y ?? 0) - 172)}
+          onItemPress={handleMentionSelected}
+        />
       </KeyboardAvoidingView>
     </View>
   );
@@ -429,6 +564,51 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
+  mentionPopup: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 4,
+    zIndex: 10,
+  },
+  mentionList: {
+    maxHeight: 164,
+  },
+  mentionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  mentionItemPressed: {
+    backgroundColor: '#EEF2FF',
+  },
+  mentionAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mentionAvatarText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  mentionName: {
+    color: '#111827',
+    fontSize: 15,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -456,7 +636,6 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: MAIN_COLOR,
-
     justifyContent: 'center',
     alignItems: 'center',
   },
