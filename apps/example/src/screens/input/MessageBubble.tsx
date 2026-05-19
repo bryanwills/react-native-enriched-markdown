@@ -1,5 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { EnrichedMarkdownText } from 'react-native-enriched-markdown';
+import {
+  EnrichedMarkdownText,
+  type LinkPressEvent,
+} from 'react-native-enriched-markdown';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +18,7 @@ export type MessageBubbleProps = {
   message: string;
   isMe: boolean;
   contextMenuItems: BubbleContextMenuItem[];
+  onLinkPress?: (event: LinkPressEvent) => void;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,6 +58,7 @@ export function MessageBubble({
   message,
   isMe,
   contextMenuItems,
+  onLinkPress,
 }: MessageBubbleProps) {
   return (
     <View
@@ -80,6 +85,7 @@ export function MessageBubble({
           markdown={message}
           md4cFlags={{ underline: true }}
           contextMenuItems={contextMenuItems}
+          onLinkPress={onLinkPress}
         />
       </View>
     </View>
