@@ -1,0 +1,128 @@
+executionPrerequisite: "App is running on iPhone 17 Pro simulator (udid:
+  0ECCE8ED-4E64-48D7-8704-BC3448C2D502), on the #random InputScreen with
+  keyboard dismissed."
+steps:
+  - echo: "Scroll to bottom of #random"
+  - tool: gesture-swipe
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      fromX: 0.5
+      fromY: 0.6
+      toX: 0.5
+      toY: 0.1
+      durationMs: 1000
+    delayMs: 800
+  - echo: Tap spoiler to reveal hidden text
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.4
+      y: 0.655
+    delayMs: 800
+  - echo: Tap input field to focus and open keyboard
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.445
+      y: 0.922
+    delayMs: 600
+  - echo: Type @ to trigger mention popup, select alice
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: "@"
+    delayMs: 800
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.5
+      y: 0.502
+    delayMs: 500
+  - echo: Type "let's ", press bold, type "meet", disable bold
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: " let's "
+    delayMs: 400
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.067
+      y: 0.524
+    delayMs: 400
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: meet
+    delayMs: 400
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.067
+      y: 0.524
+    delayMs: 400
+  - echo: 'Type " at #" to trigger channel mention, select #swm-stand'
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: " at #"
+    delayMs: 400
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.5
+      y: 0.442
+    delayMs: 500
+  - echo: Press underline, type 'before the talk', disable underline, type '!', send
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.256
+      y: 0.524
+    delayMs: 400
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: " before the talk"
+    delayMs: 400
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.256
+      y: 0.524
+    delayMs: 400
+  - tool: keyboard
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      text: "!"
+    delayMs: 400
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.925
+      y: 0.568
+    delayMs: 400
+  - echo: "Tap #swm-stand link in sent message to navigate to that channel"
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.672
+      y: 0.795
+    delayMs: 1800
+  - echo: "Scroll down in #swm-stand to reveal alice's Update message"
+  - tool: gesture-swipe
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      fromX: 0.5
+      fromY: 0.6
+      toX: 0.5
+      toY: 0.1
+      durationMs: 1000
+    delayMs: 1000
+  - echo: "Tap spoiler in alice's Update message to reveal it"
+  - tool: gesture-tap
+    args:
+      udid: 0ECCE8ED-4E64-48D7-8704-BC3448C2D502
+      x: 0.4
+      y: 0.735
+    delayMs: 1200
