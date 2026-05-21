@@ -3,14 +3,10 @@ import {
   EnrichedMarkdownText,
   type LinkPressEvent,
 } from 'react-native-enriched-markdown';
+import type { BubbleContextMenuItem } from './types';
+import { MARKDOWN_STYLE } from './markdownStyle';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type BubbleContextMenuItem = {
-  text: string;
-  icon?: string;
-  onPress: (args: { text: string }) => void;
-};
 
 export type MessageBubbleProps = {
   nick: string;
@@ -21,7 +17,7 @@ export type MessageBubbleProps = {
   onLinkPress?: (event: LinkPressEvent) => void;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const AVATAR_COLORS = [
   '#E57373',
@@ -32,28 +28,10 @@ const AVATAR_COLORS = [
   '#4DB6AC',
 ];
 
-const MARKDOWN_STYLE = {
-  link: { color: '#2563EB', underline: true },
-  linkVariants: {
-    '^user:': {
-      color: '#1264A3',
-      backgroundColor: '#E8F5FB',
-      underline: false,
-    },
-    '^channel:': {
-      color: '#065F46',
-      backgroundColor: '#D1FAE5',
-      underline: false,
-    },
-  },
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function nickToColor(nick: string): string {
   let h = 0;
   for (let i = 0; i < nick.length; i++) {
-    h = nick.charCodeAt(i) + ((h << 5) - h);
+    h = nick.charCodeAt(i) + h * 31;
   }
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
@@ -158,13 +136,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
-    marginBottom: 2,
+    marginBottom: -4,
   },
   bubbleHeaderOwn: {
     justifyContent: 'flex-end',
   },
   bubbleNick: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#374151',
   },
