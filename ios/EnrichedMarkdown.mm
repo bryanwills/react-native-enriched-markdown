@@ -1,9 +1,11 @@
 #import "EnrichedMarkdown.h"
 #import "ContextMenuUtils.h"
+#import "DataDetectorUtils.h"
 #import "ENRMAsyncRenderCoordinator.h"
 #import "ENRMImageAttachment.h"
 #import "ENRMMarkdownParser.h"
 #import "ENRMTailFadeInAnimator.h"
+#import "ENRMTextHitTest.h"
 #import "ENRMTextInteractionUtils.h"
 #import "ENRMTextRenderer.h"
 #import "ENRMTextViewSetup.h"
@@ -65,6 +67,7 @@ static char kENRMSegmentFadeAnimatorKey;
 @interface EnrichedMarkdown () <RCTEnrichedMarkdownViewProtocol, UITextViewDelegate>
 - (void)emitLinkPress:(NSString *)url;
 - (void)emitLinkLongPress:(NSString *)url;
+- (void)emitDataDetectorPress:(NSString *)type text:(NSString *)text url:(NSString *)url data:(NSString *)data;
 - (void)emitTaskListItemPress:(NSInteger)index checked:(BOOL)checked text:(NSString *)text;
 - (void)emitContextMenuItemPress:(NSString *)itemText
                     selectedText:(NSString *)selectedText
@@ -105,6 +108,8 @@ static char kENRMSegmentFadeAnimatorKey;
   ENRMSelectionMenuConfig _selectionMenuConfig;
 
   ENRMSpoilerOverlay _spoilerOverlay;
+
+  ENRMDataDetectorType _dataDetectorTypes;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -361,6 +366,7 @@ static char kENRMSegmentFadeAnimatorKey;
   BOOL allowTrailingMargin = _allowTrailingMargin;
   BOOL streamingAnimation = _streamingAnimation;
   ENRMTableStreamingMode tableStreamingMode = _tableStreamingMode;
+  ENRMDataDetectorType dataDetectorTypes = _dataDetectorTypes;
 
   __block NSArray<ENRMRenderedSegment *> *renderedSegments = nil;
   __block NSString *renderableMarkdown = nil;
@@ -381,6 +387,15 @@ static char kENRMSegmentFadeAnimatorKey;
 
         renderedSegments =
             ENRMRenderSegmentsFromAST(ast, config, allowTrailingMargin, allowFontScaling, maxFontSizeMultiplier);
+
+        if (dataDetectorTypes != ENRMDataDetectorTypeNone) {
+          for (ENRMRenderedSegment *segment in renderedSegments) {
+            if (segment.kind == ENRMSegmentKindText && segment.textResult.attributedText) {
+              ENRMApplyDataDetection(segment.textResult.attributedText, dataDetectorTypes, [config linkColor],
+                                     [config linkUnderline], [config linkFontFamily]);
+            }
+          }
+        }
         return YES;
       }
       apply:^{
@@ -755,8 +770,14 @@ static char kENRMSegmentFadeAnimatorKey;
     }
   }
 
+  BOOL dataDetectorTypesChanged = NO;
+  if (newViewProps.dataDetectorTypes != oldViewProps.dataDetectorTypes) {
+    _dataDetectorTypes = ENRMParseDataDetectorTypes(newViewProps.dataDetectorTypes);
+    dataDetectorTypesChanged = YES;
+  }
+
   if (markdownChanged || stylePropChanged || md4cFlagsChanged || allowTrailingMarginChanged ||
-      streamingAnimationChanged || streamingConfigChanged) {
+      streamingAnimationChanged || streamingConfigChanged || dataDetectorTypesChanged) {
     _pendingStyleFingerprint =
         computeStyleFingerprint(newViewProps.markdownStyle) ^ std::hash<bool>{}(newViewProps.allowTrailingMargin);
     NSString *markdownString = [[NSString alloc] initWithUTF8String:newViewProps.markdown.c_str()];
@@ -901,6 +922,16 @@ Class<RCTComponentViewProtocol> EnrichedMarkdownCls(void)
     emitter->onLinkLongPress({.url = std::string(url.UTF8String)});
 }
 
+- (void)emitDataDetectorPress:(NSString *)type text:(NSString *)text url:(NSString *)url data:(NSString *)data
+{
+  auto emitter = std::static_pointer_cast<EnrichedMarkdownEventEmitter const>(_eventEmitter);
+  if (emitter)
+    emitter->onDataDetectorPress({.type = std::string(type.UTF8String),
+                                  .text = std::string(text.UTF8String),
+                                  .url = std::string(url.UTF8String),
+                                  .data = std::string(data.UTF8String ?: "{}")});
+}
+
 - (void)emitTaskListItemPress:(NSInteger)index checked:(BOOL)checked text:(NSString *)text
 {
   auto emitter = std::static_pointer_cast<EnrichedMarkdownEventEmitter const>(_eventEmitter);
@@ -947,7 +978,15 @@ Class<RCTComponentViewProtocol> EnrichedMarkdownCls(void)
     }
   }
 
-  ENRMHandleTapOnTextView(textView, recognizer, ^(NSString *url) { [self emitLinkPress:url]; });
+  ENRMHandleTapOnTextView(textView, recognizer, ^(NSString *url) {
+    NSUInteger charIndex = ENRMCharacterIndexForTap(textView, recognizer);
+    ENRMDataDetectorTapInfo *tapInfo = ENRMDataDetectorTapInfoAtIndex(ENRMGetAttributedText(textView), charIndex);
+    if (tapInfo) {
+      [self emitDataDetectorPress:tapInfo.type text:tapInfo.text url:url data:tapInfo.dataJson];
+    } else {
+      [self emitLinkPress:url];
+    }
+  });
 }
 
 // TODO: Remove API_AVAILABLE(ios(16.0)) guard when the minimum iOS deployment target in RN is bumped to 16.
