@@ -638,6 +638,8 @@ using namespace facebook::react;
   _isApplyingFormatting = NO;
 }
 
+static unichar const kORC = 0xFFFC;
+
 - (void)applyImageAttachments
 {
   NSArray<ENRMImageEntry *> *entries = _imageStore.allEntries;
@@ -905,8 +907,6 @@ using namespace facebook::react;
   [self emitFormattingChanged];
 }
 
-static unichar const kORC = 0xFFFC;
-
 - (void)insertImage:(NSString *)url alt:(NSString *)alt width:(float)width height:(float)height
 {
   NSString *plainText = ENRMGetPlainText(_textView);
@@ -939,14 +939,14 @@ static unichar const kORC = 0xFFFC;
       isInline ? cursor : (cursor > 0 && [plainText characterAtIndex:cursor - 1] != '\n' ? cursor + 1 : cursor);
 
   CGFloat defaultBlockSize = 80.0;
-  ENRMImageEntry *entry =
-      [ENRMImageEntry entryWithPosition:orcPosition
-                                    url:url
-                                    alt:alt.length > 0 ? alt : @"image"
-                                  width:width > 0 ? width
-                                        : (isInline ? _imageInlineSize : defaultBlockSize)height:height > 0
-                                            ? height
-                                            : (isInline ? _imageInlineSize : defaultBlockSize)isInline:isInline];
+  CGFloat finalWidth = width > 0 ? width : (isInline ? _imageInlineSize : defaultBlockSize);
+  CGFloat finalHeight = height > 0 ? height : (isInline ? _imageInlineSize : defaultBlockSize);
+  ENRMImageEntry *entry = [ENRMImageEntry entryWithPosition:orcPosition
+                                                        url:url
+                                                        alt:alt.length > 0 ? alt : @"image"
+                                                      width:finalWidth
+                                                     height:finalHeight
+                                                   isInline:isInline];
   [_imageStore addEntry:entry];
 
   _lastTextLength = ENRMGetPlainText(_textView).length;

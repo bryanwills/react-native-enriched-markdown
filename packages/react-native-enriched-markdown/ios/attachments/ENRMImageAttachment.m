@@ -84,7 +84,8 @@ static NSMapTable<NSString *, ENRMImageAttachment *> *_attachmentRegistry;
                           blockHeight:(CGFloat)blockHeight
                          borderRadius:(CGFloat)borderRadius
 {
-  NSString *key = [NSString stringWithFormat:@"input_%@_%d_%.0f_%.0f", imageURL, isInline, blockWidth, blockHeight];
+  NSString *key = [NSString stringWithFormat:@"input_%@_%d_%.2f_%.2f_%.2f_%.2f", imageURL, isInline, inlineSize,
+                                             blockWidth, blockHeight, borderRadius];
   ENRMImageAttachment *existing = [[self attachmentRegistry] objectForKey:key];
   if (existing) {
     return existing;
