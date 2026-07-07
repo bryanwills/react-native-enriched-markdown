@@ -607,11 +607,9 @@ using namespace facebook::react;
   ENRMReplaceTextInRange(_textView, text, selection);
   _isApplyingFormatting = NO;
 
-  NSString *plainText = ENRMGetPlainText(_textView);
-  [_formattingStore adjustForEditAtLocation:editLocation deletedLength:selection.length insertedLength:text.length];
-  [_blockStore adjustForEditAtLocation:editLocation deletedLength:selection.length insertedLength:text.length];
-  [self pruneOrphanedHeadingBlocks];
-  [_blockStore normalizeToLineBoundsInText:plainText];
+  NSString *plainText = [self adjustStoresForEditAtLocation:editLocation
+                                              deletedLength:selection.length
+                                             insertedLength:text.length];
 
   for (ENRMFormattingRange *range in ranges) {
     NSRange shifted = NSMakeRange(range.range.location + editLocation, range.range.length);
@@ -628,8 +626,7 @@ using namespace facebook::react;
 
   [self applyFormatting];
 
-  [_detectorPipeline processTextChange:ENRMGetPlainText(_textView)
-                     modificationRange:NSMakeRange(editLocation, text.length)];
+  [_detectorPipeline processTextChange:plainText modificationRange:NSMakeRange(editLocation, text.length)];
 
   [self updatePlaceholderVisibility];
   [self emitOnChangeText];
@@ -954,6 +951,18 @@ using namespace facebook::react;
   RCTUIColor *headingColor = headingLevel >= 1 ? [_formatterStyle headingColorForLevel:headingLevel] : nil;
   attrs[NSForegroundColorAttributeName] = headingColor ?: _formatterStyle.baseTextColor;
   _textView.typingAttributes = attrs;
+}
+
+- (NSString *)adjustStoresForEditAtLocation:(NSUInteger)editLocation
+                              deletedLength:(NSUInteger)deletedLength
+                             insertedLength:(NSUInteger)insertedLength
+{
+  [_formattingStore adjustForEditAtLocation:editLocation deletedLength:deletedLength insertedLength:insertedLength];
+  [_blockStore adjustForEditAtLocation:editLocation deletedLength:deletedLength insertedLength:insertedLength];
+  [self pruneOrphanedHeadingBlocks];
+  NSString *plainText = ENRMGetPlainText(_textView);
+  [_blockStore normalizeToLineBoundsInText:plainText];
+  return plainText;
 }
 
 /// Reverts to a plain paragraph any heading no longer anchored at a line start
@@ -1671,17 +1680,12 @@ using namespace facebook::react;
     }
   }
 
-  [_formattingStore adjustForEditAtLocation:editLocation deletedLength:deletedLength insertedLength:insertedLength];
-  [_blockStore adjustForEditAtLocation:editLocation deletedLength:deletedLength insertedLength:insertedLength];
-  [self pruneOrphanedHeadingBlocks];
-  [_blockStore normalizeToLineBoundsInText:ENRMGetPlainText(_textView)];
+  NSString *plainText = [self adjustStoresForEditAtLocation:editLocation
+                                              deletedLength:deletedLength
+                                             insertedLength:insertedLength];
 
   if (insertedLength > 0) {
     NSRange insertedRange = NSMakeRange(editLocation, insertedLength);
-
-    // Skip applying pending styles when the insertion is only line breaks —
-    // a phantom range over a bare newline corrupts isStyleActive() at the boundary.
-    NSString *plainText = ENRMGetPlainText(_textView);
     NSUInteger insertedEnd = NSMaxRange(insertedRange);
     BOOL insertedHasGlyphContent = NO;
     if (insertedEnd <= plainText.length) {
