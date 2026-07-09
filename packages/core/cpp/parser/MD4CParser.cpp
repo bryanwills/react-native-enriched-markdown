@@ -19,6 +19,7 @@ public:
   static const std::string ATTR_LANGUAGE;
   static const std::string ATTR_IS_TASK;
   static const std::string ATTR_TASK_CHECKED;
+  static const std::string ATTR_START;
 
   void reset(size_t estimatedDepth) {
     root = std::make_shared<MarkdownASTNode>(NodeType::Document);
@@ -114,7 +115,14 @@ public:
       }
 
       case MD_BLOCK_OL: {
-        impl->pushNode(std::make_shared<MarkdownASTNode>(NodeType::OrderedList));
+        auto node = std::make_shared<MarkdownASTNode>(NodeType::OrderedList);
+        if (detail) {
+          auto *ol = static_cast<MD_BLOCK_OL_DETAIL *>(detail);
+          if (ol->start != 1) {
+            node->setAttribute(ATTR_START, std::to_string(ol->start));
+          }
+        }
+        impl->pushNode(node);
         break;
       }
 
@@ -621,5 +629,6 @@ const std::string MD4CParser::Impl::ATTR_FENCE_CHAR = "fenceChar";
 const std::string MD4CParser::Impl::ATTR_LANGUAGE = "language";
 const std::string MD4CParser::Impl::ATTR_IS_TASK = "isTask";
 const std::string MD4CParser::Impl::ATTR_TASK_CHECKED = "taskChecked";
+const std::string MD4CParser::Impl::ATTR_START = "start";
 
 } // namespace Markdown
