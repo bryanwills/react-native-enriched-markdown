@@ -14,6 +14,7 @@ import com.swmansion.enriched.markdown.input.events.OnContextMenuItemPressEvent
 import com.swmansion.enriched.markdown.input.events.OnEndMentionEvent
 import com.swmansion.enriched.markdown.input.events.OnInputBlurEvent
 import com.swmansion.enriched.markdown.input.events.OnInputFocusEvent
+import com.swmansion.enriched.markdown.input.events.OnInputKeyPressEvent
 import com.swmansion.enriched.markdown.input.events.OnLinkDetectedEvent
 import com.swmansion.enriched.markdown.input.events.OnRequestCaretRectResultEvent
 import com.swmansion.enriched.markdown.input.events.OnRequestMarkdownResultEvent
@@ -88,6 +89,10 @@ class InputEventEmitter(
         orderedList.second,
       ),
     )
+  }
+
+  fun emitKeyPress(key: String) {
+    dispatch(OnInputKeyPressEvent(surfaceId(), view.id, key))
   }
 
   fun emitFocus() {

@@ -13,6 +13,7 @@ import EnrichedMarkdownTextInputNativeComponent, {
   type OnChangeMarkdownEvent,
   type OnChangeSelectionEvent,
   type OnChangeStateEvent,
+  type OnKeyPressEvent,
   type OnRequestMarkdownResultEvent,
   type OnRequestCaretRectResultEvent,
   type OnCaretRectChangeEvent,
@@ -23,6 +24,7 @@ import EnrichedMarkdownTextInputNativeComponent, {
   type OnEndMentionEvent,
 } from './EnrichedMarkdownTextInputNativeComponent';
 export type {
+  OnKeyPressEvent,
   OnLinkDetected,
   OnStartMentionEvent,
   OnChangeMentionEvent,
@@ -214,6 +216,7 @@ export interface EnrichedMarkdownTextInputProps extends Omit<
   onChangeMarkdown?: (markdown: string) => void;
   onChangeSelection?: (selection: { start: number; end: number }) => void;
   onChangeState?: (state: StyleState) => void;
+  onKeyPress?: (e: NativeSyntheticEvent<OnKeyPressEvent>) => void;
   onCaretRectChange?: (rect: CaretRect) => void;
   onLinkDetected?: (event: OnLinkDetected) => void;
   mentionIndicators?: string[];
@@ -291,6 +294,7 @@ export const EnrichedMarkdownTextInput = ({
   onChangeMarkdown,
   onChangeSelection,
   onChangeState,
+  onKeyPress,
   onCaretRectChange,
   onLinkDetected,
   mentionIndicators,
@@ -627,6 +631,7 @@ export const EnrichedMarkdownTextInput = ({
         handleChangeSelection as NativeProps['onChangeSelection']
       }
       onChangeState={handleChangeState as NativeProps['onChangeState']}
+      onInputKeyPress={onKeyPress as NativeProps['onInputKeyPress']}
       onLinkDetected={handleLinkDetected as NativeProps['onLinkDetected']}
       onInputFocus={handleFocus as NativeProps['onInputFocus']}
       onInputBlur={handleBlur as NativeProps['onInputBlur']}

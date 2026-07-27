@@ -67,6 +67,10 @@ export interface OnChangeMarkdownEvent {
   value: string;
 }
 
+export interface OnKeyPressEvent {
+  key: string;
+}
+
 export interface OnChangeSelectionEvent {
   start: CodegenTypes.Int32;
   end: CodegenTypes.Int32;
@@ -286,6 +290,7 @@ export interface NativeProps extends ViewProps {
   onChangeText?: CodegenTypes.DirectEventHandler<OnChangeTextEvent>;
   onChangeMarkdown?: CodegenTypes.DirectEventHandler<OnChangeMarkdownEvent>;
   onChangeSelection?: CodegenTypes.DirectEventHandler<OnChangeSelectionEvent>;
+  onInputKeyPress?: CodegenTypes.DirectEventHandler<OnKeyPressEvent>;
   onChangeState?: CodegenTypes.DirectEventHandler<OnChangeStateEvent>;
   onInputFocus?: CodegenTypes.DirectEventHandler<TargetedEvent>;
   onInputBlur?: CodegenTypes.DirectEventHandler<TargetedEvent>;
