@@ -376,6 +376,7 @@ class EnrichedMarkdownTextInputView(
       } else {
         pendingStyles.clear()
         pendingStyleRemovals.clear()
+        seedPendingStylesFromSelection(selStart, selEnd)
       }
     }
 
@@ -389,6 +390,27 @@ class EnrichedMarkdownTextInputView(
     dispatchMentionUpdate()
     eventEmitter.emitState()
     eventEmitter.emitCaretRectChangeIfNeeded()
+  }
+
+  /**
+   * Text typed over a non-empty selection inherits the inline styles of the first
+   * selected character (mirrors iOS rebuildFromContext and the range-inheritance
+   * rule in [com.swmansion.enriched.markdown.input.formatting.RangeEditAdjustment]).
+   * Seeding here is the only chance to carry the style through the whole typed
+   * run: the post-edit grace period above skips reseeding between keystrokes.
+   * LINK is excluded — typing over a selected link replaces it, not extends it.
+   */
+  private fun seedPendingStylesFromSelection(
+    selStart: Int,
+    selEnd: Int,
+  ) {
+    if (selStart == selEnd) return
+    for (style in StyleType.entries) {
+      if (style == StyleType.LINK) continue
+      if (formattingStore.isStyleActive(style, selStart)) {
+        pendingStyles.add(style)
+      }
+    }
   }
 
   /**
@@ -492,6 +514,9 @@ class EnrichedMarkdownTextInputView(
       eventEmitter.emitState()
     } else {
       applyFormattingAndEmit()
+      pendingStyles.clear()
+      pendingStyleRemovals.clear()
+      seedPendingStylesFromSelection(selStart, selEnd)
     }
   }
 

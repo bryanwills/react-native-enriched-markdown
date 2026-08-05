@@ -63,6 +63,8 @@ using namespace facebook::react;
 - (void)resetBaseTypingAttributes;
 @end
 
+static const NSTimeInterval kENRMAtomicSnapPollInterval = 0.1;
+
 @implementation EnrichedMarkdownTextInput {
   ENRMPlatformTextView *_textView;
   ENRMInputLayoutManager *_layoutManager;
@@ -81,6 +83,7 @@ using namespace facebook::react;
   NSUInteger _lastTextLength;
   NSRange _lastSelectedRange;
   NSRange _preEditSelectedRange;
+  BOOL _atomicSnapScheduled;
 
   // Block type/level of the line being edited, captured before a text change so
   // a Return that continues a list (or an autocorrect/paste that replaces the
@@ -1149,7 +1152,10 @@ using namespace facebook::react;
 
 /// Drives the layout manager's empty-line bullet: an empty bullet line has no
 /// character to anchor the marker to, so the manager is told its location/depth
-/// explicitly; cleared when the caret isn't on an empty bullet line.
+/// explicitly; cleared when the caret isn't on an empty bullet line. Runs on
+/// every selection-change fire, so it early-returns when there is nothing to
+/// draw or clear and only touches storage when the paragraph style differs,
+/// avoiding layout churn that jitters the edit menu.
 - (void)updateEmptyBulletMarker
 {
   NSString *text = ENRMGetPlainText(_textView);
@@ -1161,6 +1167,13 @@ using namespace facebook::react;
   BOOL ordered = NO;
   NSInteger ordinal = 1;
   ENRMBlockRange *cursorListBlock = selection.length == 0 ? [self listBlockForCursorParagraph] : nil;
+
+  ENRMInputListMarkerDrawer *listDrawer = _layoutManager.listMarkerDrawer;
+  BOOL wasShown = listDrawer.emptyBulletDepth >= 0;
+  if (cursorListBlock == nil && !wasShown) {
+    return;
+  }
+
   if (cursorListBlock != nil) {
     NSInteger cursorDepth = cursorListBlock.level;
     ordered = cursorListBlock.type == ENRMInputBlockTypeOrderedListItem;
@@ -1177,20 +1190,29 @@ using namespace facebook::react;
       // flush left; stamp the list style so caret and marker indent immediately.
       // (A trailing empty line uses the extra line fragment instead.)
       if (paragraphRange.length > 0) {
-        NSMutableParagraphStyle *paragraph = [[NSMutableParagraphStyle alloc] init];
         CGFloat indent = (depth + 1) * kENRMListIndentPerDepth;
-        paragraph.firstLineHeadIndent = indent;
-        paragraph.headIndent = indent;
-        paragraph.paragraphSpacingBefore = _formatterStyle.listItemSpacing;
         NSTextStorage *storage = _textView.textStorage;
-        [storage beginEditing];
-        [storage addAttribute:NSParagraphStyleAttributeName value:paragraph range:paragraphRange];
-        [storage endEditing];
+        NSParagraphStyle *existing = [storage attribute:NSParagraphStyleAttributeName
+                                                atIndex:paragraphRange.location
+                                         effectiveRange:NULL];
+        if (existing == nil || existing.firstLineHeadIndent != indent || existing.headIndent != indent ||
+            existing.paragraphSpacingBefore != _formatterStyle.listItemSpacing) {
+          NSMutableParagraphStyle *paragraph = [[NSMutableParagraphStyle alloc] init];
+          paragraph.firstLineHeadIndent = indent;
+          paragraph.headIndent = indent;
+          paragraph.paragraphSpacingBefore = _formatterStyle.listItemSpacing;
+          [storage beginEditing];
+          [storage addAttribute:NSParagraphStyleAttributeName value:paragraph range:paragraphRange];
+          [storage endEditing];
+        }
       }
     }
   }
 
-  ENRMInputListMarkerDrawer *listDrawer = _layoutManager.listMarkerDrawer;
+  if (!show && !wasShown) {
+    return;
+  }
+
   listDrawer.emptyBulletDepth = show ? depth : -1;
   listDrawer.emptyBulletOrdered = ordered;
   listDrawer.emptyBulletOrdinal = ordinal;
@@ -1736,14 +1758,78 @@ using namespace facebook::react;
   [_inputEventEmitter emitOnBlur];
 }
 
+/// Atomic-link snap clamped to the current text length, so a stale link range
+/// past the text end can't drive an unbounded snap/clamp loop.
+- (NSRange)clampedAtomicSelectionForSelection:(NSRange)selection
+{
+  NSRange adjusted = [_formattingStore selectionAdjustedForAtomicLinks:selection];
+  NSUInteger textLength = _textView.textStorage.length;
+  if (adjusted.location > textLength) {
+    return NSMakeRange(textLength, 0);
+  }
+  if (NSMaxRange(adjusted) > textLength) {
+    adjusted.length = textLength - adjusted.location;
+  }
+  return adjusted;
+}
+
+/// YES while a UIKit selection gesture (handle drag, long-press loupe) is
+/// mid-flight; snapping selectedRange then fights the gesture and flickers the
+/// edit menu, so callers defer the snap until it settles.
+- (BOOL)selectionGestureIsActive
+{
+  for (UIGestureRecognizer *recognizer in _textView.gestureRecognizers) {
+    if (recognizer.state == UIGestureRecognizerStateBegan || recognizer.state == UIGestureRecognizerStateChanged) {
+      return YES;
+    }
+  }
+  return NO;
+}
+
+/// Re-applies the atomic-link snap once the selection gesture ends, polling the
+/// main queue because UIKit may not re-fire the selection delegate at touch-up.
+- (void)schedulePostGestureAtomicSnap
+{
+  if (_atomicSnapScheduled) {
+    return;
+  }
+  _atomicSnapScheduled = YES;
+  __weak __typeof(self) weakSelf = self;
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kENRMAtomicSnapPollInterval * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   __typeof(self) strongSelf = weakSelf;
+                   if (strongSelf == nil) {
+                     return;
+                   }
+                   strongSelf->_atomicSnapScheduled = NO;
+                   if (strongSelf->_editSession.shouldSuppressSelectionSideEffects ||
+                       strongSelf->_editSession.isComposing) {
+                     return;
+                   }
+                   if ([strongSelf selectionGestureIsActive]) {
+                     [strongSelf schedulePostGestureAtomicSnap];
+                     return;
+                   }
+                   NSRange selection = strongSelf->_textView.selectedRange;
+                   NSRange adjusted = [strongSelf clampedAtomicSelectionForSelection:selection];
+                   if (!NSEqualRanges(adjusted, selection)) {
+                     strongSelf->_textView.selectedRange = adjusted;
+                   }
+                 });
+}
+
 - (void)textViewDidChangeSelection:(UITextView *)textView
 {
   NSRange newSelection = textView.selectedRange;
   if (!_editSession.shouldSuppressSelectionSideEffects && !_editSession.isComposing) {
-    NSRange adjusted = [_formattingStore selectionAdjustedForAtomicLinks:newSelection];
-    if (!NSEqualRanges(adjusted, newSelection)) {
-      _textView.selectedRange = adjusted;
-      return;
+    if ([self selectionGestureIsActive]) {
+      [self schedulePostGestureAtomicSnap];
+    } else {
+      NSRange adjusted = [self clampedAtomicSelectionForSelection:newSelection];
+      if (!NSEqualRanges(adjusted, newSelection)) {
+        _textView.selectedRange = adjusted;
+        return;
+      }
     }
   }
   NSRange previousSelection = _lastSelectedRange;
