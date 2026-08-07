@@ -3,6 +3,7 @@ import UIKit
 
 struct MarkdownTextViewRepresentable: UIViewRepresentable {
     let attributedText: NSAttributedString
+    let sourceMarkdown: String?
     let styleConfig: MarkdownStyleConfig
     let onLinkPress: ((URL) -> Void)?
 
@@ -19,6 +20,7 @@ struct MarkdownTextViewRepresentable: UIViewRepresentable {
 
     func updateUIView(_ textView: MarkdownTextView, context: Context) {
         context.coordinator.onLinkPress = onLinkPress
+        context.coordinator.sourceMarkdown = sourceMarkdown
         textView.styleConfig = styleConfig
         textView.setMarkdownAttributedText(attributedText)
     }
@@ -36,6 +38,7 @@ struct MarkdownTextViewRepresentable: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var onLinkPress: ((URL) -> Void)?
+        var sourceMarkdown: String?
 
         func textView(
             _ textView: UITextView,
