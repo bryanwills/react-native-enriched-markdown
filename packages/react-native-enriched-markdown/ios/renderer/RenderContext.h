@@ -1,3 +1,4 @@
+#import "ENRMLatexErrorReporting.h"
 #import "ENRMUIKit.h"
 #import <Foundation/Foundation.h>
 
@@ -55,6 +56,7 @@ typedef NS_ENUM(NSInteger, ListType) { ListTypeUnordered, ListTypeOrdered };
 @property (nonatomic, assign) BOOL allowFontScaling;
 @property (nonatomic, assign) CGFloat maxFontSizeMultiplier;
 @property (nonatomic, assign) NSInteger taskItemCount;
+@property (nonatomic, strong) NSMutableArray<id<ENRMLatexErrorReporting>> *mathReporters;
 
 - (instancetype)init;
 - (void)reset;
