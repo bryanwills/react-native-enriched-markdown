@@ -407,6 +407,7 @@ public struct MarkdownStyleConfig: Equatable, Sendable {
     public var underline: ElementStyle
     public var superscript: BaselineShiftStyle
     public var `subscript`: BaselineShiftStyle
+    public var highlight: ElementStyle
     public var code: ElementStyle
     public var image: ImageStyle
     public var inlineImage: InlineImageStyle
@@ -435,6 +436,7 @@ public struct MarkdownStyleConfig: Equatable, Sendable {
         underline: ElementStyle = ElementStyle(),
         superscript: BaselineShiftStyle = BaselineShiftStyle(),
         subscript subscriptStyle: BaselineShiftStyle = BaselineShiftStyle(),
+        highlight: ElementStyle = ElementStyle(),
         code: ElementStyle = ElementStyle(),
         image: ImageStyle = ImageStyle(),
         inlineImage: InlineImageStyle = InlineImageStyle(),
@@ -459,6 +461,7 @@ public struct MarkdownStyleConfig: Equatable, Sendable {
         self.underline = underline
         self.superscript = superscript
         self.subscript = subscriptStyle
+        self.highlight = highlight
         self.code = code
         self.image = image
         self.inlineImage = inlineImage
@@ -485,6 +488,7 @@ public struct MarkdownStyleConfig: Equatable, Sendable {
         underline.merge(other.underline)
         superscript.merge(other.superscript)
         self.subscript.merge(other.subscript)
+        highlight.merge(other.highlight)
         code.merge(other.code)
         image.merge(other.image)
         inlineImage.merge(other.inlineImage)
