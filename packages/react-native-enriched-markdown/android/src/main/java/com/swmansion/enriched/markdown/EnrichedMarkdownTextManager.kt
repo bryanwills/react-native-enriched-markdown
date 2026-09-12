@@ -14,6 +14,7 @@ import com.facebook.react.viewmanagers.EnrichedMarkdownTextManagerDelegate
 import com.facebook.react.viewmanagers.EnrichedMarkdownTextManagerInterface
 import com.facebook.yoga.YogaMeasureMode
 import com.swmansion.enriched.markdown.spoiler.SpoilerOverlay
+import com.swmansion.enriched.markdown.utils.common.applyReactBorderProps
 import com.swmansion.enriched.markdown.utils.common.emitContextMenuItemPress
 import com.swmansion.enriched.markdown.utils.common.emitLatexError
 import com.swmansion.enriched.markdown.utils.common.emitLinkLongPress
@@ -80,6 +81,15 @@ class EnrichedMarkdownTextManager :
   override fun onAfterUpdateTransaction(view: EnrichedMarkdownText) {
     super.onAfterUpdateTransaction(view)
     view.commitProps()
+  }
+
+  // Replay containerStyle border props the delegate drops (see applyReactBorderProps).
+  override fun updateProperties(
+    view: EnrichedMarkdownText,
+    props: ReactStylesDiffMap,
+  ) {
+    super.updateProperties(view, props)
+    applyReactBorderProps(view, props)
   }
 
   override fun updateState(

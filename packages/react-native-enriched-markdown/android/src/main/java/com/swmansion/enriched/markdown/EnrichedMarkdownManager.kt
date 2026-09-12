@@ -16,6 +16,7 @@ import com.facebook.yoga.YogaMeasureMode
 import com.swmansion.enriched.markdown.spoiler.SpoilerOverlay
 import com.swmansion.enriched.markdown.utils.common.CodeBlockStreamingMode
 import com.swmansion.enriched.markdown.utils.common.TableStreamingMode
+import com.swmansion.enriched.markdown.utils.common.applyReactBorderProps
 import com.swmansion.enriched.markdown.utils.common.emitCodeBlockPress
 import com.swmansion.enriched.markdown.utils.common.emitContextMenuItemPress
 import com.swmansion.enriched.markdown.utils.common.emitCopyPress
@@ -81,6 +82,15 @@ class EnrichedMarkdownManager :
   override fun onAfterUpdateTransaction(view: EnrichedMarkdown) {
     super.onAfterUpdateTransaction(view)
     view.commitProps()
+  }
+
+  // Replay containerStyle border props the delegate drops (see applyReactBorderProps).
+  override fun updateProperties(
+    view: EnrichedMarkdown,
+    props: ReactStylesDiffMap,
+  ) {
+    super.updateProperties(view, props)
+    applyReactBorderProps(view, props)
   }
 
   override fun updateState(
