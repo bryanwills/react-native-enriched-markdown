@@ -233,7 +233,7 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
     _allowFontScaling = YES;
     _maxFontSizeMultiplier = 0;
     _enableLinkPreview = YES;
-    _enableBlockContextMenu = YES;
+    _dynamicProps = [[ENRMDynamicBlockProps alloc] init];
     _writingDirectionMode = ENRMWritingDirectionModeFirstStrong;
     _resolvedLayoutDirection = NSWritingDirectionLeftToRight;
     [self setupScrollView];
@@ -260,13 +260,15 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
   // a single drawRect: pass (no subview / layer compositing issues).
   ENRMTableGridView *gridView = [[ENRMTableGridView alloc] initWithFrame:CGRectZero];
   __weak TableContainerView *weakSelf = self;
-  gridView.menuProvider = ^NSMenu * {
+  gridView.menuProvider = ^NSMenu *
+  {
     TableContainerView *strongSelf = weakSelf;
-    if (!strongSelf || !strongSelf.enableBlockContextMenu)
+    if (!strongSelf || !strongSelf.dynamicProps.enableBlockContextMenu)
       return nil;
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
-    [menu addItem:ENRMCreateMenuItem(strongSelf.copyLabel, ^{ [strongSelf copyTableToPasteboard]; })];
-    [menu addItem:ENRMCreateMenuItem(strongSelf.copyAsMarkdownLabel, ^{ [strongSelf copyMarkdownToPasteboard]; })];
+    [menu addItem:ENRMCreateMenuItem(strongSelf.dynamicProps.menuCopyLabel, ^{ [strongSelf copyTableToPasteboard]; })];
+    [menu addItem:ENRMCreateMenuItem(strongSelf.dynamicProps.menuCopyAsMarkdownLabel,
+                                     ^{ [strongSelf copyMarkdownToPasteboard]; })];
     return menu;
   };
   _gridContainer = gridView;
@@ -457,7 +459,7 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
 - (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction
                         configurationForMenuAtLocation:(CGPoint)location
 {
-  if (!self.enableBlockContextMenu) {
+  if (!self.dynamicProps.enableBlockContextMenu) {
     return nil;
   }
   return [UIContextMenuConfiguration
@@ -465,13 +467,13 @@ static void ENRMTableComputeLayout(NSArray<NSArray<TableCellData *> *> *rows, NS
                   previewProvider:nil
                    actionProvider:^UIMenu *(NSArray<UIMenuElement *> *suggestedActions) {
                      UIAction *copyMarkdown =
-                         [UIAction actionWithTitle:self.copyAsMarkdownLabel
+                         [UIAction actionWithTitle:self.dynamicProps.menuCopyAsMarkdownLabel
                                              image:[RCTUIImage systemImageNamed:@"doc.text"]
                                         identifier:nil
                                            handler:^(__kindof UIAction *action) { [self copyMarkdownToPasteboard]; }];
 
                      UIAction *copyPlainText =
-                         [UIAction actionWithTitle:self.copyLabel
+                         [UIAction actionWithTitle:self.dynamicProps.menuCopyLabel
                                              image:[RCTUIImage systemImageNamed:@"doc.on.doc"]
                                         identifier:nil
                                            handler:^(__kindof UIAction *action) { [self copyTableToPasteboard]; }];
